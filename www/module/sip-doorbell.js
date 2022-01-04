@@ -13,6 +13,8 @@
  * access:
  *   - key: 1#
  *     icon: mdi:door
+ *     service: domain.service
+ *     data: service data
  *   - key: 2#
  *     icon: mdi:gate
  * camera: camera.doorbell
@@ -154,6 +156,10 @@ class sipDoorbell extends HTMLElement {
     if(this.config.camera.entity) {
       this.config.camera.secret = hass.states[this.config.camera.entity].attributes['access_token'];
     }
+    if(this.webRtcCamera) {
+      this.webRtcCamera.hass = hass;
+    }
+    this.hassSaved = hass;
   }
 
   content() {
@@ -168,8 +174,8 @@ class sipDoorbell extends HTMLElement {
         }
 
         ha-icon {
-          margin: 30px;
-          padding: 15px;
+          margin: 10px;
+          padding: 5px;
           cursor: pointer;
 
           border-width: 2px;
@@ -195,14 +201,13 @@ class sipDoorbell extends HTMLElement {
 
         #basis {
           min-width: 320px;
-          min-height: 240px;
+          min-height: 360px;
 
           width: 100%;
           height: 100%;
-          background: ${this.config.assets.poster.canvas};
 
           display: flex;
-          align-items: center;
+          align-items: start;
           justify-content: center;
         }
 
@@ -215,7 +220,7 @@ class sipDoorbell extends HTMLElement {
         #cover {
           width: 100%;
           height: 100%;
-          display: block;
+          display: none;
           object-fit: contain;
         }
 
@@ -228,15 +233,15 @@ class sipDoorbell extends HTMLElement {
 
         #video {
           width: 100%;
-          height: 100%;
+          height: 80%;
           display: none;
           object-fit: contain;
         }
 
         #scene {
           width: 100%;
-          height: 100%;
-          display: none;
+          height: 80%;
+          display: block;
           object-fit: contain;
         }
 
@@ -276,7 +281,7 @@ class sipDoorbell extends HTMLElement {
           <img id="cover" class="cover-primary" src="${this.config.assets.poster.source}">
           <audio id="audio" autoplay playsinline></audio>
           <video id="video" autoplay playsinline></video>
-          <img id="scene">
+          <div id="scene"></div>
           <div id="panel">
             <span>
               ${this.config.access.map((d) => `<ha-icon data-key="${d.key}" icon="${d.icon}"></ha-icon>`).join('')}
@@ -288,6 +293,15 @@ class sipDoorbell extends HTMLElement {
         </div>
       </ha-card>
     `;
+    this.element('#scene').attachShadow({mode:'open'});
+    const element = customElements.get('webrtc-camera');
+    this.webRtcCamera = new element();
+    this.webRtcCamera.id = 'camera';
+    const configWebRtcCamera = {};
+    configWebRtcCamera.entity = this.config.camera.entity;
+    this.webRtcCamera.setConfig(configWebRtcCamera);
+    this.webRtcCamera.hass = this.hassSaved;
+    this.element('#scene').shadowRoot.appendChild(this.webRtcCamera);
   }
 
   control() {
@@ -312,20 +326,10 @@ class sipDoorbell extends HTMLElement {
         };
 
         const active = () => {
-          if(this.config.camera.entity) {
-            handle.scene.src = '/api/camera_proxy_stream/' + this.config.camera.entity + '?token=' + this.config.camera.secret;
-
-            handle.cover.setAttribute('style', 'display: none;');
-            handle.audio.setAttribute('style', 'display: none;');
-            handle.video.setAttribute('style', 'display: none;');
-            handle.scene.setAttribute('style', 'display: block;');
-          } else {
-            handle.cover.setAttribute('style', 'display: none;');
-            handle.audio.setAttribute('style', 'display: none;');
-            handle.video.setAttribute('style', 'display: block;');
-            handle.scene.setAttribute('style', 'display: none;');
-          }
-
+          handle.cover.setAttribute('style', 'display: none;');
+          handle.audio.setAttribute('style', 'display: none;');
+          handle.video.setAttribute('style', 'display: block;');
+          handle.scene.setAttribute('style', 'display: none;');
           handle.basis.setAttribute('style', 'background: var(--ha-card-background, var(--card-background-color, white));');
         };
 
@@ -433,10 +437,15 @@ class sipDoorbell extends HTMLElement {
 
         this.config.access.forEach((d) => {
           this.element('[data-key="' + d.key + '"]').addEventListener('click', () => {
-            rtc.session.sendDTMF(d.key, {
-              duration:250,
-              interToneGap:500
-            });
+            if (d.key) {
+              rtc.session.sendDTMF(d.key, {
+                'transportType': 'INFO' //'RFC2833'
+              });
+            }
+            if (d.service) {
+              const serviceArray = d.service.split('.');
+              this.hassSaved.callService(serviceArray[0], serviceArray[1], d.data);
+            }
           });
         });
       });
@@ -463,7 +472,7 @@ class sipDoorbell extends HTMLElement {
   }
 
   cleanup() {
-    this.element('#scene').src = '';
+    //this.element('#scene').src = '';
 
     this.factory('[data-key="callup"]');
     this.factory('[data-key="pickup"]');
