@@ -273,7 +273,10 @@ class sipDoorbell extends HTMLElement {
           background: red;
         }
 
-        ${this.config.access.map((d) => `[data-key="${d.key}"] {display: none; background: green;}`).join('')}
+        ${this.config.access.map((d, index) => `[data-key="access-${index}"] {
+          display: ${d.service ? 'initial' : 'none'}; 
+          background: green;
+        }`).join('')}
       </style>
 
       <ha-card id="basis">
@@ -284,7 +287,7 @@ class sipDoorbell extends HTMLElement {
           <div id="scene"></div>
           <div id="panel">
             <span>
-              ${this.config.access.map((d) => `<ha-icon data-key="${d.key}" icon="${d.icon}"></ha-icon>`).join('')}
+              ${this.config.access.map((d, index) => `<ha-icon data-key="access-${index}" icon="${d.icon}"></ha-icon>`).join('')}
               <ha-icon data-key="callup" icon="mdi:phone-classic"></ha-icon>
               <ha-icon data-key="pickup" icon="mdi:phone"></ha-icon>
               <ha-icon data-key="hangup" icon="mdi:phone-hangup"></ha-icon>
@@ -353,7 +356,7 @@ class sipDoorbell extends HTMLElement {
           this.element('[data-key="callup"]').setAttribute('style', 'display: none;');
           this.element('[data-key="pickup"]').setAttribute('style', 'display: initial;');
           this.element('[data-key="hangup"]').setAttribute('style', 'display: initial;');
-          this.config.access.forEach((d) => this.element('[data-key="' + d.key + '"]').setAttribute('style', 'display: none;'));
+          this.config.access.forEach((d, index) => this.element('[data-key="access-' + index + '"]').setAttribute('style', 'display: '+ (d.service ? 'initial' : 'none;')));
 
           rtc.session.on('accepted', () => {
             if(this.incoming_call_accepted !== null) {
@@ -365,7 +368,7 @@ class sipDoorbell extends HTMLElement {
               this.element('[data-key="callup"]').setAttribute('style', 'display: none;');
               this.element('[data-key="pickup"]').setAttribute('style', 'display: none;');
               this.element('[data-key="hangup"]').setAttribute('style', 'display: initial;');
-              this.config.access.forEach((d) => this.element('[data-key="' + d.key + '"]').setAttribute('style', 'display: initial;'));
+              this.config.access.forEach((d, index) => this.element('[data-key="access-' + index + '"]').setAttribute('style', 'display: initial;'));
             }
           });
 
@@ -396,7 +399,7 @@ class sipDoorbell extends HTMLElement {
           this.element('[data-key="callup"]').setAttribute('style', 'display: none;');
           this.element('[data-key="pickup"]').setAttribute('style', 'display: none;');
           this.element('[data-key="hangup"]').setAttribute('style', 'display: initial;');
-          this.config.access.forEach((d) => this.element('[data-key="' + d.key + '"]').setAttribute('style', 'display: none;'));
+          this.config.access.forEach((d, index) => this.element('[data-key="access-' + index + '"]').setAttribute('style', 'display: ' + (d.service ? 'initial' : 'none;')));
 
           rtc.session.on('confirmed', () => {
             if(this.outgoing_call_confirmed !== null) {
@@ -408,7 +411,7 @@ class sipDoorbell extends HTMLElement {
               this.element('[data-key="callup"]').setAttribute('style', 'display: none;');
               this.element('[data-key="pickup"]').setAttribute('style', 'display: none;');
               this.element('[data-key="hangup"]').setAttribute('style', 'display: initial;');
-              this.config.access.forEach((d) => this.element('[data-key="' + d.key + '"]').setAttribute('style', 'display: initial;'));
+              this.config.access.forEach((d, index) => this.element('[data-key="access-' + index + '"]').setAttribute('style', 'display: initial;'));
             }
           });
 
@@ -434,19 +437,13 @@ class sipDoorbell extends HTMLElement {
           this.caution('notice-callup-stop');
           this.cleanup();
         });
-
-        this.config.access.forEach((d) => {
-          this.element('[data-key="' + d.key + '"]').addEventListener('click', () => {
-            if (d.key) {
-              rtc.session.sendDTMF(d.key, {
-                'transportType': 'INFO' //'RFC2833'
-              });
-            }
-            if (d.service) {
-              const serviceArray = d.service.split('.');
-              this.hassSaved.callService(serviceArray[0], serviceArray[1], d.data);
-            }
-          });
+        
+        this.config.access.forEach((d, index) => {
+          if (d.key) {
+            this.element('[data-key="access-' + index + '"]').addEventListener('click', () => {
+              rtc.session.sendDTMF(d.key, {'transportType': 'INFO'}); // or 'RFC2833' 
+            });
+          }
         });
       });
 
@@ -477,7 +474,16 @@ class sipDoorbell extends HTMLElement {
     this.factory('[data-key="callup"]');
     this.factory('[data-key="pickup"]');
     this.factory('[data-key="hangup"]');
-    this.config.access.forEach((d) => this.factory('[data-key="' + d.key + '"]'));
+    this.config.access.forEach((d, index) => {
+      this.factory('[data-key="access-' + index + '"]');
+      if (d.service) {
+        this.element('[data-key="access-' + index + '"]').addEventListener('click', () => {
+          const serviceArray = d.service.split('.');
+          this.hassSaved.callService(serviceArray[0], serviceArray[1], d.data);
+        });
+      }
+    });
+
 
     this.element('#basis').removeAttribute('style');
     this.element('#cover').removeAttribute('style');
