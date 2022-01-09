@@ -142,6 +142,7 @@ class sipDoorbell extends HTMLElement {
       }
     });
 
+/*  This seems to originate a crash in webiew
     navigator.mediaDevices.getUserMedia({
       audio:true,
       video:true
@@ -150,6 +151,7 @@ class sipDoorbell extends HTMLElement {
     }).catch(() => {
       throw new Error('SIP Doorbel require audio/video permission');
     });
+*/
   }
 
   set hass(hass) {
