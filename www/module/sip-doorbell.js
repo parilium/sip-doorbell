@@ -113,7 +113,7 @@ class sipDoorbell extends HTMLElement {
         opt:{
           mediaConstraints:{
             audio:true,
-            video:true
+            video:config.camera? false : true
           },
           pcConfig:{
             iceServers:config.server?.ice ? config.server?.ice : []
@@ -298,15 +298,17 @@ class sipDoorbell extends HTMLElement {
         </div>
       </ha-card>
     `;
-    this.element('#scene').attachShadow({mode:'open'});
-    const element = customElements.get('webrtc-camera');
-    this.webRtcCamera = new element();
-    this.webRtcCamera.id = 'camera';
-    const configWebRtcCamera = {};
-    configWebRtcCamera.entity = this.config.camera.entity;
-    this.webRtcCamera.setConfig(configWebRtcCamera);
-    this.webRtcCamera.hass = this.hassSaved;
-    this.element('#scene').shadowRoot.appendChild(this.webRtcCamera);
+    if (this.config.camera.entity) {
+      this.element('#scene').attachShadow({mode:'open'});
+      const element = customElements.get('webrtc-camera');
+      this.webRtcCamera = new element();
+      this.webRtcCamera.id = 'camera';
+      const configWebRtcCamera = {};
+      configWebRtcCamera.entity = this.config.camera.entity;
+      this.webRtcCamera.setConfig(configWebRtcCamera);
+      this.webRtcCamera.hass = this.hassSaved;
+      this.element('#scene').shadowRoot.appendChild(this.webRtcCamera);
+    }
   }
 
   control() {
@@ -333,8 +335,14 @@ class sipDoorbell extends HTMLElement {
         const active = () => {
           handle.cover.setAttribute('style', 'display: none;');
           handle.audio.setAttribute('style', 'display: none;');
-          handle.video.setAttribute('style', 'display: block;');
-          handle.scene.setAttribute('style', 'display: none;');
+          if (this.config.camera.entity) {
+            handle.video.setAttribute('style', 'display: none;');
+            handle.scene.setAttribute('style', 'display: block;');
+          }
+          else {
+            handle.video.setAttribute('style', 'display: block;');
+            handle.scene.setAttribute('style', 'display: none;');
+          }
           handle.basis.setAttribute('style', 'background: var(--ha-card-background, var(--card-background-color, white));');
         };
 
