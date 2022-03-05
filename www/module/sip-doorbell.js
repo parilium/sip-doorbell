@@ -10,6 +10,7 @@
  *     - urls: turn:sip.domain.tld
  *       username: 001@sip.domain.tld
  *       credential: secret
+ *   video: false
  * access:
  *   - key: 1#
  *     icon: mdi:door
@@ -21,6 +22,11 @@
  * remote: 999@sip.domain.tld
  */
 
+import {
+  css,
+  html,
+  LitElement,
+} from "https://unpkg.com/lit-element@2.3.1/lit-element.js?module";
 import '/local/vendor/jssip.js';
 
 window.customCards = window.customCards || [];
@@ -113,7 +119,7 @@ class sipDoorbell extends HTMLElement {
         opt:{
           mediaConstraints:{
             audio:true,
-            video:config.camera? false : true
+            video:config.camera ? false : (config.server?.video ? config.server?.video : true )
           },
           pcConfig:{
             iceServers:config.server?.ice ? config.server?.ice : []
@@ -155,13 +161,14 @@ class sipDoorbell extends HTMLElement {
   }
 
   set hass(hass) {
-    if(this.config.camera.entity) {
-      this.config.camera.secret = hass.states[this.config.camera.entity].attributes['access_token'];
-    }
-    if(this.webRtcCamera) {
-      this.webRtcCamera.hass = hass;
-    }
     this.hassSaved = hass;
+    if (this.config.camera.entity) {
+      const cameraObj = this.hassSaved.states[this.config.camera.entity];
+      if (cameraObj && this.element('#camera')) {
+        this.element('#camera').hass = this.hassSaved;
+        this.element('#camera').stateObj = cameraObj;
+      }
+    }
   }
 
   content() {
@@ -203,7 +210,7 @@ class sipDoorbell extends HTMLElement {
 
         #basis {
           min-width: 320px;
-          min-height: 360px;
+          min-height: 346px;
 
           width: 100%;
           height: 100%;
@@ -286,7 +293,10 @@ class sipDoorbell extends HTMLElement {
           <img id="cover" class="cover-primary" src="${this.config.assets.poster.source}">
           <audio id="audio" autoplay playsinline></audio>
           <video id="video" autoplay playsinline></video>
-          <div id="scene"></div>
+          <div id="scene">
+            <ha-camera-stream id="camera">
+            </ha-camera-stream>
+          </div>
           <div id="panel">
             <span>
               ${this.config.access.map((d, index) => `<ha-icon data-key="access-${index}" icon="${d.icon}"></ha-icon>`).join('')}
@@ -298,17 +308,6 @@ class sipDoorbell extends HTMLElement {
         </div>
       </ha-card>
     `;
-    if (this.config.camera.entity) {
-      this.element('#scene').attachShadow({mode:'open'});
-      const element = customElements.get('webrtc-camera');
-      this.webRtcCamera = new element();
-      this.webRtcCamera.id = 'camera';
-      const configWebRtcCamera = {};
-      configWebRtcCamera.entity = this.config.camera.entity;
-      this.webRtcCamera.setConfig(configWebRtcCamera);
-      this.webRtcCamera.hass = this.hassSaved;
-      this.element('#scene').shadowRoot.appendChild(this.webRtcCamera);
-    }
   }
 
   control() {
