@@ -47,7 +47,7 @@ class sipDoorbell extends HTMLElement {
       content:false,
       control:false
     };
-
+/*
     (() => {
       const child = new MutationObserver((m) => {
         m.forEach((l) => {
@@ -79,7 +79,7 @@ class sipDoorbell extends HTMLElement {
         window.addEventListener(e, () => this.stretch());
       });
     })();
-
+*/
     window.addEventListener('beforeunload', () => {
       if(window.sipDoorbell[this.config.worker]) {
         window.sipDoorbell[this.config.worker].stop();
@@ -119,7 +119,7 @@ class sipDoorbell extends HTMLElement {
         opt:{
           mediaConstraints:{
             audio:true,
-            video:config.camera ? false : (config.server?.video ? config.server?.video : true )
+            video:config.camera ? false : ((config.server?.video !== undefined) ? config.server?.video : true)
           },
           pcConfig:{
             iceServers:config.server?.ice ? config.server?.ice : []
@@ -167,6 +167,7 @@ class sipDoorbell extends HTMLElement {
       if (cameraObj && this.element('#camera')) {
         this.element('#camera').hass = this.hassSaved;
         this.element('#camera').stateObj = cameraObj;
+        this.element('#camera').controls = true;
       }
     }
   }
@@ -210,20 +211,14 @@ class sipDoorbell extends HTMLElement {
 
         #basis {
           min-width: 320px;
-          min-height: 346px;
 
           width: 100%;
           height: 100%;
 
           display: flex;
+          flex-direction: column;
           align-items: start;
           justify-content: center;
-        }
-
-        #arena {
-          width: 0;
-          height: 0;
-          position: relative;
         }
 
         #cover {
@@ -255,14 +250,9 @@ class sipDoorbell extends HTMLElement {
         }
 
         #panel {
-          left: 0;
-          right: 0;
-          bottom: 0;
-          position: absolute;
-        }
-
-        #panel span {
+          width: 100%;
           display: flex;
+          flex-direction: row;
           align-items: center;
           justify-content: center;
         }
@@ -289,22 +279,18 @@ class sipDoorbell extends HTMLElement {
       </style>
 
       <ha-card id="basis">
-        <div id="arena">
-          <img id="cover" class="cover-primary" src="${this.config.assets.poster.source}">
-          <audio id="audio" autoplay playsinline></audio>
-          <video id="video" autoplay playsinline></video>
-          <div id="scene">
-            <ha-camera-stream id="camera">
-            </ha-camera-stream>
-          </div>
-          <div id="panel">
-            <span>
-              ${this.config.access.map((d, index) => `<ha-icon data-key="access-${index}" icon="${d.icon}"></ha-icon>`).join('')}
-              <ha-icon data-key="callup" icon="mdi:phone-classic"></ha-icon>
-              <ha-icon data-key="pickup" icon="mdi:phone"></ha-icon>
-              <ha-icon data-key="hangup" icon="mdi:phone-hangup"></ha-icon>
-            </span>
-          </div>
+        <img id="cover" class="cover-primary" src="${this.config.assets.poster.source}">
+        <audio id="audio" autoplay playsinline></audio>
+        <video id="video" autoplay playsinline></video>
+        <div id="scene">
+          <ha-camera-stream id="camera">
+          </ha-camera-stream>
+        </div>
+        <div id="panel">
+            ${this.config.access.map((d, index) => `<ha-icon data-key="access-${index}" icon="${d.icon}"></ha-icon>`).join('')}
+            <ha-icon data-key="callup" icon="mdi:phone-classic"></ha-icon>
+            <ha-icon data-key="pickup" icon="mdi:phone"></ha-icon>
+            <ha-icon data-key="hangup" icon="mdi:phone-hangup"></ha-icon>
         </div>
       </ha-card>
     `;
@@ -339,7 +325,7 @@ class sipDoorbell extends HTMLElement {
             handle.scene.setAttribute('style', 'display: block;');
           }
           else {
-            handle.video.setAttribute('style', 'display: block;');
+            if (this.config.server.opt.mediaConstraints.video) handle.video.setAttribute('style', 'display: block;');
             handle.scene.setAttribute('style', 'display: none;');
           }
           handle.basis.setAttribute('style', 'background: var(--ha-card-background, var(--card-background-color, white));');
