@@ -42,44 +42,12 @@ class sipDoorbell extends HTMLElement {
     this.attachShadow({mode:'open'});
     window.sipDoorbell = window.sipDoorbell || {};
 
-    this.version = '0.0.1';
+    this.version = '0.0.2';
     this.startup = {
       content:false,
       control:false
     };
-/*
-    (() => {
-      const child = new MutationObserver((m) => {
-        m.forEach((l) => {
-          l.addedNodes.forEach((e) => {
-            if(e.nodeName === 'HA-CARD') {
-              focus.observe(e);
-            }
-          });
-        });
-      });
 
-      const focus = new IntersectionObserver((i) => {
-        i.forEach((e) => {
-          if(e.isIntersecting) {
-            this.stretch();
-          }
-        });
-      }, {
-        root:this.shadowRoot.activeElement
-      });
-
-      child.observe(this.shadowRoot, {
-        attributes:false,
-        childList:true,
-        subtree:false
-      });
-
-      ['orientationchange', 'resize'].forEach((e) => {
-        window.addEventListener(e, () => this.stretch());
-      });
-    })();
-*/
     window.addEventListener('beforeunload', () => {
       if(window.sipDoorbell[this.config.worker]) {
         window.sipDoorbell[this.config.worker].stop();
@@ -210,11 +178,10 @@ class sipDoorbell extends HTMLElement {
         }
 
         #basis {
-          min-width: 320px;
-
           width: 100%;
           height: 100%;
 
+          background-color: rgba(255, 255, 255, 0.3);
           display: flex;
           flex-direction: column;
           align-items: start;
@@ -222,6 +189,7 @@ class sipDoorbell extends HTMLElement {
         }
 
         #cover {
+          min-width: 320px;
           width: 100%;
           height: 100%;
           display: none;
@@ -236,6 +204,7 @@ class sipDoorbell extends HTMLElement {
         }
 
         #video {
+          min-width: 320px;
           width: 100%;
           height: 80%;
           display: none;
@@ -243,6 +212,7 @@ class sipDoorbell extends HTMLElement {
         }
 
         #scene {
+
           width: 100%;
           height: 80%;
           display: block;
@@ -328,7 +298,7 @@ class sipDoorbell extends HTMLElement {
             if (this.config.server.opt.mediaConstraints.video) handle.video.setAttribute('style', 'display: block;');
             handle.scene.setAttribute('style', 'display: none;');
           }
-          handle.basis.setAttribute('style', 'background: var(--ha-card-background, var(--card-background-color, white));');
+//          handle.basis.setAttribute('style', 'background: var(--ha-card-background, var(--card-background-color, white));');
         };
 
         const stream = (c) => {
